@@ -15,9 +15,12 @@ int evaluate(chess::Board &board) {
 
     while (pieces) {
         auto square = chess::builtin::poplsb(pieces);
+        int squareInt = (int) square;
         int piece = (int) board.at(square);
         
         evaluation = evaluation + MATERIAL_VALUE::VALUE[piece];
+        evaluation = evaluation + POSITIONAL_VALUE::VALUE[piece][squareInt];
+        std::cout << squareInt << std::endl;
     }
 
     return evaluation;
