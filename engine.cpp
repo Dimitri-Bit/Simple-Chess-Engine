@@ -4,10 +4,11 @@
 
 using namespace chess;
 
+int eval(Board& board);
 void printBoard(Board &board, Color color);
 Square getSquareByColor(Color color, int row, int col);
 
-std::map<chess::Piece, std::string> piece_map =
+std::map<chess::Piece, std::string> pieceCodeMap =
 {
     {Piece::BLACKPAWN, "\u265F"},
     {Piece::BLACKKNIGHT, "\u265E"},
@@ -24,12 +25,41 @@ std::map<chess::Piece, std::string> piece_map =
     {Piece::NONE, "-"}
 };
 
+std::map<chess::Piece, int> pieceMateriaMap =
+{
+    {Piece::WHITEPAWN, 100},
+    {Piece::WHITEKNIGHT, 350},
+    {Piece::WHITEBISHOP, 350},
+    {Piece::WHITEROOK, 525},
+    {Piece::WHITEQUEEN, 1000},
+    {Piece::WHITEKING, 100000},
+    {Piece::BLACKPAWN, -100},
+    {Piece::BLACKKNIGHT, -350},
+    {Piece::BLACKBISHOP, -350},
+    {Piece::BLACKROOK, -525},
+    {Piece::BLACKQUEEN, -1000},
+    {Piece::BLACKKING, -100000}
+};
+
 int main() {
     Board board = Board(constants::STARTPOS);
-    
-    printBoard(board, Color::WHITE);
+
+    std::cout << eval(board) << std::endl;
 
     return 0;
+}
+
+int eval(Board& board) {
+    int value = 0;
+
+    for (int i = 0; i <= 64; i++) {
+        Piece piece = board.at(i);
+        if (piece != Piece::NONE) {
+            value += pieceMateriaMap[piece];
+        }
+    }
+
+    return value;
 }
 
 /*
@@ -42,7 +72,7 @@ void printBoard(Board& board, Color color) {
         std::cout << rowNumber << " ";
         for (int col = 0; col < 8; col++) {
             Piece piece = board.at(getSquareByColor(color, row, col));
-            std::cout << " " << piece_map[piece];
+            std::cout << " " << pieceCodeMap[piece];
         }
         std::cout << std::endl;
     }
