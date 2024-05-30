@@ -3,9 +3,17 @@
 #include <string>
 #include <climits>
 #include <chrono>
+#include <ctime>
 
 using namespace chess;
 
+uint64_t perft(Board& board, int depth);
+void gameLoop(Board& board);
+void playEngineWhite(Board& board);
+void playEngineBlack(Board& board);
+Move getEngineMove(Board& board, int depth, bool max);
+Move getMove(Board& board);
+bool isMoveLegal(Board& board, Move& move);
 int minimax(Board& board, int depth, int alpha, int beta, bool max);
 int eval(Board& board);
 void printBoard(Board &board, Color color);
@@ -45,13 +53,161 @@ std::map<chess::Piece, int> pieceMateriaMap =
     {Piece::BLACKKING, -100000}
 };
 
+Color playerColor;
+
 int main() {
     Board board = Board(constants::STARTPOS);
-    board.makeMove(uci::parseSan(board, "e2e4"));
-    board.makeMove(uci::parseSan(board, "e7e6"));
-    printBoardTwo(board, Color::WHITE);
+    gameLoop(board);
+
+    // auto start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    // std::cout << perft(board, 7) << std::endl;
+    // auto end = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    // std::cout << (end - start) << "ms" << std::endl;
 
     return 0;
+}
+
+uint64_t perft(Board& board, int depth) {
+    Movelist moves;
+    movegen::legalmoves(moves, board);
+
+    if (depth == 1) {
+        return moves.size();
+    }
+
+    uint64_t nodes = 0;
+
+    for (int i = 0; i < moves.size(); i++) {
+        const auto move = moves[i];
+        board.makeMove(move);
+        nodes += perft(board, depth - 1);
+        board.unmakeMove(move);
+    }
+
+    return nodes;
+}
+
+void gameLoop(Board& board) {
+    std::cout << "What do you want to play? (w/b): ";
+    char input;
+    std::cin >> input;
+
+    playerColor = ((char)tolower(input) == 'w') ? Color::WHITE : Color::BLACK; 
+    std::cout << "You are playing as *" << playerColor.internal() << "*" << std::endl;
+    
+    if (playerColor == Color::WHITE) {
+        playEngineBlack(board);
+    } else {
+        playEngineWhite(board);
+    }
+}
+
+void playEngineWhite(Board& board) {
+    bool whitesTurn = true;
+    Move lastEngMove = Move::NULL_MOVE;
+
+    while(true) {
+        if (whitesTurn) { // Engine
+            whitesTurn = false;
+
+            Move engineMove(getEngineMove(board, 7, true));
+            board.makeMove(engineMove);
+            lastEngMove = engineMove;
+        } else {
+            whitesTurn = true;
+
+            printBoard(board, playerColor);
+            if (lastEngMove != Move::NULL_MOVE) {
+                std::cout << "Engine Move: " << lastEngMove.from() << lastEngMove.to() << std::endl;
+            }
+
+            board.makeMove(getMove(board));
+        }
+    }
+}
+
+void playEngineBlack(Board& board) {
+    bool whitesTurn = true;
+    Move lastEngMove = Move::NULL_MOVE;
+
+    while (true) {
+        if (whitesTurn) { // Player
+            whitesTurn = false;
+
+            printBoard(board, playerColor);
+            if (lastEngMove != Move::NULL_MOVE) {
+                std::cout << "Engine Move: " << lastEngMove.from() << lastEngMove.to() << std::endl;
+            }
+
+            board.makeMove(getMove(board));
+        } else {
+            whitesTurn = true;
+
+            Move engineMove = getEngineMove(board, 7, false);
+            board.makeMove(engineMove);
+            lastEngMove = engineMove;
+        }
+    }
+}
+
+Move getEngineMove(Board& board, int depth, bool max) {
+    int bestValue = (max) ? INT_MIN : INT_MAX;
+    Move bestMove;
+
+    Movelist moves;
+    movegen::legalmoves(moves, board);
+
+    for (int i = 0; i < moves.size(); i++) {
+        const auto move = moves[i];
+        
+        board.makeMove(move);
+        int value = minimax(board, depth, INT_MIN, INT_MAX, max);
+        board.unmakeMove(move);
+
+        if (max) { // Engine is white
+            if (value > bestValue) {
+                bestValue = value;
+                bestMove = move;
+            }
+        } else {
+            if (value < bestValue) {
+                bestValue = value;
+                bestMove = move;
+            }
+        }
+    }
+
+    return bestMove;
+}
+
+Move getMove(Board& board) {
+    while (true) {
+        std::cout << "Enter move to play (SAN): ";
+        std::string moveStr;
+        std::cin >> moveStr;
+
+        Move move = uci::parseSan(board, moveStr);
+        
+        if (isMoveLegal(board, move)) {
+            return move;
+        }
+
+        std::cout << "Given move is not legal, please try again." << std::endl;
+    }
+}
+
+bool isMoveLegal(Board& board, Move& move) {
+    Movelist moves;
+    movegen::legalmoves(moves, board);
+
+    for (int i = 0; i < moves.size(); i++) {
+        if (moves[i] == move) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 int minimax(Board& board, int depth, int alpha, int beta, bool max) {
@@ -119,6 +275,8 @@ int eval(Board& board) {
 void printBoard(Board& board, Color color) {
     std::string boardArr[8][8];
     fillBoard(board, boardArr, color);
+
+    std::cout << "\n\n\n";
 
     for (int row = 0; row < 8; row++) {
         int rowNumber = (color == Color::BLACK) ? (row + 1) : (8 - row);
