@@ -44,11 +44,14 @@ std::map<chess::Piece, int> pieceMateriaMap =
     {Piece::BLACKKING, -100000}
 };
 
-bool white;
+bool playerWhite;
 
 int main() {
     Board board = Board(constants::STARTPOS);
-    startGame();
+    printBoard(board, Color::WHITE);
+    board.makeMove(uci::parseSan(board, "e2e3"));
+    printBoard(board, Color::WHITE);
+    // startGame();
 
     // std::cout << eval(board) << std::endl;
 
@@ -70,16 +73,23 @@ void startGame() {
     std::cin >> color;
 
     if ((char)tolower(color) == 'w') {
-        white = true;
+        playerWhite = true;
         std::cout << "You are now playing as white" << std::endl;
     } else {
-        white = false;
+        playerWhite = false;
         std::cout << "You are now playing as black" << std::endl;
     }
 
-    bool whitesTurn = true;
-    while (true) {
-
+    if (playerWhite) { // Engine is playing black
+        bool whitesTurn = true;
+        
+        while (true) {
+            if (whitesTurn) {
+                whitesTurn = false;
+            } else {
+                whitesTurn = true;
+            }
+        }
     }
 }
 
@@ -145,27 +155,41 @@ int eval(Board& board) {
     return value;
 }
 
-/*
-    Print chess board & coordinates depending on the given color perspective
-*/
 void printBoard(Board& board, Color color) {
     std::cout << "   A B C D E F G H\n" << std::endl;
     for (int row = 0; row < 8; row++) {
         int rowNumber = (color == Color::BLACK) ? (row + 1) : (8 - row);
         std::cout << rowNumber << " ";
+
         for (int col = 0; col < 8; col++) {
             Piece piece = board.at(getSquareByColor(color, row, col));
             std::cout << " " << pieceCodeMap[piece];
         }
         std::cout << std::endl;
     }
+    std::cout << "\n";
 }
 
-// Todo: write shorthand cuz this is ugly
 Square getSquareByColor(Color color, int row, int col) {
     if (color == Color::BLACK) {
-        return Square(63- (row * 8 + col));
-    } else {
         return Square(row * 8 + col);
+    } else {
+        return Square(63 - (row * 8 + col));
     }
 }
+
+/*
+    Print chess board & coordinates depending on the given color perspective
+*/
+// void printBoard(Board& board, Color color) {
+//     std::cout << "   A B C D E F G H\n" << std::endl;
+//     for (int row = 0; row < 8; row++) {
+//         int rowNumber = (color == Color::BLACK) ? (row + 1) : (8 - row);
+//         std::cout << rowNumber << " ";
+//         for (int col = 0; col < 8; col++) {
+//             Piece piece = board.at(getSquareByColor(color, row, col));
+//             std::cout << " " << pieceCodeMap[piece];
+//         }
+//         std::cout << std::endl;
+//     }
+// }
