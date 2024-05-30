@@ -6,9 +6,10 @@
 
 using namespace chess;
 
-void startGame();
+int minimax(Board& board, int depth, int alpha, int beta, bool max);
 int eval(Board& board);
 void printBoard(Board &board, Color color);
+void fillBoard(Board& board, std::string (&boardArr)[8][8], Color color);
 Square getSquareByColor(Color color, int row, int col);
 
 std::map<chess::Piece, std::string> pieceCodeMap =
@@ -44,53 +45,13 @@ std::map<chess::Piece, int> pieceMateriaMap =
     {Piece::BLACKKING, -100000}
 };
 
-bool playerWhite;
-
 int main() {
     Board board = Board(constants::STARTPOS);
-    printBoard(board, Color::WHITE);
-    board.makeMove(uci::parseSan(board, "e2e3"));
-    printBoard(board, Color::WHITE);
-    // startGame();
-
-    // std::cout << eval(board) << std::endl;
-
-    // const auto start = std::chrono::high_resolution_clock::now();
-
-    // int result = eval(board);
-
-    // const auto end = std::chrono::high_resolution_clock::now();
-    // std::cout << std::chrono::duration_cast<std::chrono::nanoseconds>(end-start).count() << "ns\n";
+    board.makeMove(uci::parseSan(board, "e2e4"));
+    board.makeMove(uci::parseSan(board, "e7e6"));
+    printBoardTwo(board, Color::WHITE);
 
     return 0;
-}
-
-void startGame() {
-    Board board = Board(constants::STARTPOS);
-
-    std::cout << "Which color would you like to play? (W/B): ";
-    char color;
-    std::cin >> color;
-
-    if ((char)tolower(color) == 'w') {
-        playerWhite = true;
-        std::cout << "You are now playing as white" << std::endl;
-    } else {
-        playerWhite = false;
-        std::cout << "You are now playing as black" << std::endl;
-    }
-
-    if (playerWhite) { // Engine is playing black
-        bool whitesTurn = true;
-        
-        while (true) {
-            if (whitesTurn) {
-                whitesTurn = false;
-            } else {
-                whitesTurn = true;
-            }
-        }
-    }
 }
 
 int minimax(Board& board, int depth, int alpha, int beta, bool max) {
@@ -156,18 +117,30 @@ int eval(Board& board) {
 }
 
 void printBoard(Board& board, Color color) {
-    std::cout << "   A B C D E F G H\n" << std::endl;
+    std::string boardArr[8][8];
+    fillBoard(board, boardArr, color);
+
     for (int row = 0; row < 8; row++) {
         int rowNumber = (color == Color::BLACK) ? (row + 1) : (8 - row);
         std::cout << rowNumber << " ";
 
         for (int col = 0; col < 8; col++) {
-            Piece piece = board.at(getSquareByColor(color, row, col));
-            std::cout << " " << pieceCodeMap[piece];
+            std::cout << " " << boardArr[row][col];
         }
         std::cout << std::endl;
     }
-    std::cout << "\n";
+
+    std::string letters = (color == Color::WHITE) ? "\n   A B C D E F G H\n" : "\n   H G F E D C B A\n";
+    std::cout << letters << std::endl;
+}
+
+void fillBoard(Board& board, std::string (&boardArr)[8][8], Color color) {
+    for (int row = 0; row < 8; row++) {
+        for (int col = 0; col < 8; col++) {
+            Piece piece = board.at(getSquareByColor(color, row, col));
+            boardArr[row][(7-col)] = pieceCodeMap[piece]; // Mirror board since its like not positioned right for some reason??
+        }
+    }
 }
 
 Square getSquareByColor(Color color, int row, int col) {
@@ -177,19 +150,3 @@ Square getSquareByColor(Color color, int row, int col) {
         return Square(63 - (row * 8 + col));
     }
 }
-
-/*
-    Print chess board & coordinates depending on the given color perspective
-*/
-// void printBoard(Board& board, Color color) {
-//     std::cout << "   A B C D E F G H\n" << std::endl;
-//     for (int row = 0; row < 8; row++) {
-//         int rowNumber = (color == Color::BLACK) ? (row + 1) : (8 - row);
-//         std::cout << rowNumber << " ";
-//         for (int col = 0; col < 8; col++) {
-//             Piece piece = board.at(getSquareByColor(color, row, col));
-//             std::cout << " " << pieceCodeMap[piece];
-//         }
-//         std::cout << std::endl;
-//     }
-// }
