@@ -11,11 +11,13 @@ uint64_t perft(Board& board, int depth);
 void gameLoop(Board& board);
 void playEngineWhite(Board& board);
 void playEngineBlack(Board& board);
-Move getEngineMove(Board& board, int depth, bool max);
+Move getEngineMove(Board& board, int depth, int color);
 Move getMove(Board& board);
 bool isMoveLegal(Board& board, Move& move);
+int negamax(Board& board, int depth, int alpha, int beta, int color);
 int minimax(Board& board, int depth, int alpha, int beta, bool max);
 int eval(Board& board);
+int negamaxEval(Board& board, int color);
 void printBoard(Board &board, Color color);
 void fillBoard(Board& board, std::string (&boardArr)[8][8], Color color);
 Square getSquareByColor(Color color, int row, int col);
@@ -53,10 +55,18 @@ std::map<chess::Piece, int> pieceMateriaMap =
     {Piece::BLACKKING, -100000}
 };
 
+static const int KING_WEIGHT = 1000000;
+static const int QUEEN_WEIGHT = 1000;
+static const int ROOK_WEIGHT = 525;
+static const int BISHOP_WEIGHT = 350;
+static const int KNIGHT_WEIGHT = 350;
+static const int PAWN_WEIGHT = 100;
+
 Color playerColor;
 
 int main() {
     Board board = Board(constants::STARTPOS);
+    // std::cout << negamaxEval(board, 1) << std::endl;
     gameLoop(board);
 
     // auto start = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -111,7 +121,7 @@ void playEngineWhite(Board& board) {
         if (whitesTurn) { // Engine
             whitesTurn = false;
 
-            Move engineMove(getEngineMove(board, 7, true));
+            Move engineMove(getEngineMove(board, 5, 1));
             board.makeMove(engineMove);
             lastEngMove = engineMove;
         } else {
@@ -144,15 +154,15 @@ void playEngineBlack(Board& board) {
         } else {
             whitesTurn = true;
 
-            Move engineMove = getEngineMove(board, 7, false);
+            Move engineMove = getEngineMove(board, 5, -1);
             board.makeMove(engineMove);
             lastEngMove = engineMove;
         }
     }
 }
 
-Move getEngineMove(Board& board, int depth, bool max) {
-    int bestValue = (max) ? INT_MIN : INT_MAX;
+Move getEngineMove(Board& board, int depth, int color) {
+    int bestValue = INT_MIN;
     Move bestMove;
 
     Movelist moves;
@@ -160,21 +170,14 @@ Move getEngineMove(Board& board, int depth, bool max) {
 
     for (int i = 0; i < moves.size(); i++) {
         const auto move = moves[i];
-        
+
         board.makeMove(move);
-        int value = minimax(board, depth, INT_MIN, INT_MAX, max);
+        int value = negamax(board, 5, INT_MIN, INT_MAX, color);
         board.unmakeMove(move);
 
-        if (max) { // Engine is white
-            if (value > bestValue) {
-                bestValue = value;
-                bestMove = move;
-            }
-        } else {
-            if (value < bestValue) {
-                bestValue = value;
-                bestMove = move;
-            }
+        if (value > bestValue) {
+            bestValue = value;
+            bestMove = move;
         }
     }
 
@@ -208,6 +211,29 @@ bool isMoveLegal(Board& board, Move& move) {
     }
 
     return false;
+}
+
+int negamax(Board& board, int depth, int alpha, int beta, int color) {
+    if (depth == 0) {
+        return color * negamaxEval(board, color);
+    }
+
+    Movelist moves;
+    movegen::legalmoves(moves, board);
+    int value = INT_MIN;
+
+    for (int i = 0; i < moves.size(); i++) {
+        board.makeMove(moves[i]);
+        value = std::max(value, -negamax(board, depth - 1, -beta, -alpha, -color));
+        board.unmakeMove(moves[i]);
+
+        alpha = std::max(alpha, value);
+        if (alpha > beta) {
+            break;
+        }
+    }
+
+    return value;
 }
 
 int minimax(Board& board, int depth, int alpha, int beta, bool max) {
@@ -257,6 +283,40 @@ int minimax(Board& board, int depth, int alpha, int beta, bool max) {
     }
 
     return bestValue;
+}
+
+int negamaxEval(Board& board, int color) {
+    int materialScore = 0;
+
+    std::map<chess::Piece, int> pieceNumMap =
+    {
+        {Piece::WHITEPAWN, 0},
+        {Piece::WHITEKNIGHT, 0},
+        {Piece::WHITEBISHOP, 0},
+        {Piece::WHITEROOK, 0},
+        {Piece::WHITEQUEEN, 0},
+        {Piece::WHITEKING, 0},
+        {Piece::BLACKPAWN, 0},
+        {Piece::BLACKKNIGHT, 0},
+        {Piece::BLACKBISHOP, 0},
+        {Piece::BLACKROOK, 0},
+        {Piece::BLACKQUEEN, 0},
+        {Piece::BLACKKING, 0}
+    };
+
+    for (int i = 0; i <= 64; i++) {
+        Piece piece = board.at(i);
+        pieceNumMap[piece]++;
+    }
+
+    materialScore += KING_WEIGHT * (pieceNumMap[Piece::WHITEKING] - pieceNumMap[Piece::BLACKKING]);
+    materialScore += QUEEN_WEIGHT * (pieceNumMap[Piece::WHITEQUEEN] - pieceNumMap[Piece::BLACKQUEEN]);
+    materialScore += ROOK_WEIGHT * (pieceNumMap[Piece::WHITEROOK] - pieceNumMap[Piece::BLACKROOK]);
+    materialScore += BISHOP_WEIGHT * (pieceNumMap[Piece::WHITEBISHOP] - pieceNumMap[Piece::BLACKBISHOP]);
+    materialScore += KNIGHT_WEIGHT * (pieceNumMap[Piece::WHITEKNIGHT] - pieceNumMap[Piece::BLACKKNIGHT]);
+    materialScore += PAWN_WEIGHT * (pieceNumMap[Piece::WHITEPAWN] - pieceNumMap[Piece::BLACKPAWN]);
+
+    return materialScore * color;
 }
 
 int eval(Board& board) {
