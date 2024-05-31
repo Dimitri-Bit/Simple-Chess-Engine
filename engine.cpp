@@ -121,7 +121,7 @@ void playEngineWhite(Board& board) {
         if (whitesTurn) { // Engine
             whitesTurn = false;
 
-            Move engineMove(getEngineMove(board, 5, 1));
+            Move engineMove(getEngineMove(board, 3, 1));
             board.makeMove(engineMove);
             lastEngMove = engineMove;
         } else {
@@ -154,7 +154,7 @@ void playEngineBlack(Board& board) {
         } else {
             whitesTurn = true;
 
-            Move engineMove = getEngineMove(board, 5, -1);
+            Move engineMove = getEngineMove(board, 3, -1);
             board.makeMove(engineMove);
             lastEngMove = engineMove;
         }
@@ -214,7 +214,7 @@ bool isMoveLegal(Board& board, Move& move) {
 }
 
 int negamax(Board& board, int depth, int alpha, int beta, int color) {
-    if (depth == 0) {
+    if (depth <= 1) {
         return color * negamaxEval(board, color);
     }
 
