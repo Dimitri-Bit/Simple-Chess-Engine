@@ -1,4 +1,5 @@
 #include "libraries/chess.hpp"
+#include "search.hpp"
 #include <map>
 #include <string>
 #include <climits>
@@ -10,7 +11,7 @@ using namespace chess;
 void gameLoop(Board& board);
 void playEngineWhite(Board& board);
 void playEngineBlack(Board& board);
-Move getEngineMove(Board& board, int depth, int color);
+Move getEngineMove(Board& board, int depth, bool max);
 Move getMove(Board& board);
 bool isMoveLegal(Board& board, Move& move);
 void printBoard(Board &board, Color color);
@@ -36,9 +37,9 @@ std::map<chess::Piece, std::string> pieceCodeMap =
 Color playerColor;
 
 int main() {
-    Board board = Board(constants::STARTPOS);
-    printBoard(board, Color::WHITE);
-
+    Board board = Board(chess::constants::STARTPOS);
+    int test = minimax(board, 5, INT_MIN, INT_MAX, true);
+    std::cout << test << std::endl;
     return 0;
 }
 
@@ -50,11 +51,7 @@ void gameLoop(Board& board) {
     playerColor = ((char)tolower(input) == 'w') ? Color::WHITE : Color::BLACK; 
     std::cout << "You are playing as *" << playerColor.internal() << "*" << std::endl;
     
-    if (playerColor == Color::WHITE) {
-        playEngineBlack(board);
-    } else {
-        playEngineWhite(board);
-    }
+    (playerColor == Color::WHITE) ? playEngineBlack(board) : playEngineWhite(board);
 }
 
 void playEngineWhite(Board& board) {
@@ -65,7 +62,7 @@ void playEngineWhite(Board& board) {
         if (whitesTurn) { // Engine
             whitesTurn = false;
 
-            Move engineMove(getEngineMove(board, 3, 1));
+            Move engineMove(getEngineMove(board, 5, true));
             board.makeMove(engineMove);
             lastEngMove = engineMove;
         } else {
@@ -98,14 +95,14 @@ void playEngineBlack(Board& board) {
         } else {
             whitesTurn = true;
 
-            Move engineMove = getEngineMove(board, 3, -1);
+            Move engineMove = getEngineMove(board, 5, false);
             board.makeMove(engineMove);
             lastEngMove = engineMove;
         }
     }
 }
 
-Move getEngineMove(Board& board, int depth, int color) {
+Move getEngineMove(Board& board, int depth, bool max) {
     int bestValue = INT_MIN;
     Move bestMove;
 
@@ -116,7 +113,7 @@ Move getEngineMove(Board& board, int depth, int color) {
         const auto move = moves[i];
 
         board.makeMove(move);
-        int value = negamax(board, 5, INT_MIN, INT_MAX, color);
+        int value = minimax(board, depth, INT_MIN, INT_MAX, max);
         board.unmakeMove(move);
 
         if (value > bestValue) {
