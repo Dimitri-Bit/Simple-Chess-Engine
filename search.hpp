@@ -1,7 +1,7 @@
 #include "libraries/chess.hpp"
 #include <climits>
 
-int alphaBeta(chess::Board& board, int depth, int alpha, int beta, int max);
+int minimax(chess::Board &board, int depth, int alpha, int beta, bool isMaxPlayer);
 int evaluate(chess::Board& board);
 
 // Values from: https://www.chessprogramming.org/Simplified_Evaluation_Function
@@ -27,43 +27,45 @@ const int materialValues[12] = {
     -KING
 };
 
-// alphaBeta(origin, depth, −∞, +∞, TRUE)
-int alphaBeta(chess::Board& board, int depth, int alpha, int beta, int max) {
-    if (depth == 0) {
-        return evaluate(board);
-    }
-
-    int value;
+int minimax(chess::Board &board, int depth, int alpha, int beta, bool isMaxPlayer) {
     chess::Movelist moves;
     chess::movegen::legalmoves(moves, board);
 
-    if (max) { // White
-        value = INT_MIN;
-        for (chess::Move move : moves) {
-            board.makeMove(move);
-            value = std::max(value, alphaBeta(board, depth-1, alpha, beta, false));
-            board.unmakeMove(move);
-
-            if (value > beta) {
-                break;
-            }
-            alpha = std::max(alpha, value);
-        }
-    } else {
-        value = INT_MAX;
-        for (chess::Move move : moves) {
-            board.makeMove(move);
-            value = std::min(value, alphaBeta(board, depth-1, alpha, beta, true));
-            board.unmakeMove(move);
-
-            if (value < alpha) {
-                break;
-            }
-            beta = std::min(beta, value);
-        }
+    if (depth <= 0) {
+        return evaluate(board);
     }
 
-    return value;
+    int bestValue;
+    if (isMaxPlayer) {
+        bestValue = INT_MIN;
+        for (int i = 0; i < moves.size(); i++) {
+            const auto move = moves[i];
+            board.makeMove(move);
+            int value = minimax(board, depth - 1, alpha, beta, false);
+            board.unmakeMove(move);
+            bestValue = std::max(bestValue, value);
+            alpha = std::max(alpha, bestValue);
+
+            if (beta <= alpha) {
+                break;
+            }
+        }
+    } else {
+        bestValue = INT_MAX;
+        for (int i = 0; i < moves.size(); i++) {
+            const auto move = moves[i];
+            board.makeMove(move);
+            int value = minimax(board, depth - 1, alpha, beta, true);
+            board.unmakeMove(move);
+            bestValue = std::min(bestValue, value);
+            beta = std::min(beta, value);
+
+            if (beta <= alpha) {
+                break;
+            }
+        }
+    }
+    return bestValue;
 }
 
 int evaluate(chess::Board& board) {
