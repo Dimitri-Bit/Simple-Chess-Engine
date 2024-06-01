@@ -1,7 +1,4 @@
 main
+test
 engine
 .vscode/
-constants.hpp
-enginea.cpp
-evaluation.hpp
-search.hpp
