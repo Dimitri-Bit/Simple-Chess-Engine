@@ -4,6 +4,29 @@
 int alphaBeta(chess::Board& board, int depth, int alpha, int beta, int max);
 int evaluate(chess::Board& board);
 
+// Values from: https://www.chessprogramming.org/Simplified_Evaluation_Function
+const int PAWN = 100;
+const int KNIGHT = 320;
+const int BISHOP = 330;
+const int ROOK = 500;
+const int QUEEN = 900;
+const int KING = 20000;
+
+const int materialValues[12] = {
+    PAWN,
+    KNIGHT,
+    BISHOP,
+    ROOK,
+    QUEEN,
+    KING,
+    -PAWN,
+    -KNIGHT,
+    -BISHOP,
+    -ROOK,
+    -QUEEN,
+    -KING
+};
+
 // alphaBeta(origin, depth, −∞, +∞, TRUE)
 int alphaBeta(chess::Board& board, int depth, int alpha, int beta, int max) {
     if (depth == 0) {
@@ -44,5 +67,16 @@ int alphaBeta(chess::Board& board, int depth, int alpha, int beta, int max) {
 }
 
 int evaluate(chess::Board& board) {
-    return 2;
+    int eval = 0;
+
+    for (int i = 0; i < 64; i++) {
+        auto square = (chess::Square)i;
+        int piece = (int)board.at(square);
+
+        if (piece != 12) {
+            eval += materialValues[piece];
+        }
+    }
+
+    return eval;
 }
