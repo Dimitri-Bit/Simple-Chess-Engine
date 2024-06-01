@@ -15,7 +15,6 @@ Move getMove(Board& board);
 bool isMoveLegal(Board& board, Move& move);
 void printBoard(Board &board, Color color);
 void fillBoard(Board& board, std::string (&boardArr)[8][8], Color color);
-Square getSquareByColor(Color color, int row, int col);
 
 std::map<chess::Piece, std::string> pieceCodeMap =
 {
